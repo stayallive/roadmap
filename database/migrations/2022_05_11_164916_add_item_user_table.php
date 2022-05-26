@@ -15,6 +15,8 @@ return new class extends Migration {
         Schema::create('item_user', function (Blueprint $table) {
             $table->foreignId('item_id')->nullable()->constrained();
             $table->foreignId('user_id')->nullable()->constrained();
+
+            $table->primary(['item_id', 'user_id']);
         });
     }
 
