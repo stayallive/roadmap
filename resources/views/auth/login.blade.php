@@ -1,3 +1,6 @@
+@section('title', 'Login')
+@section('image', (new \App\Services\OgImageGenerator())->setSubject('Roadmap')->setTitle('Login')->setImageName('login.jpg')->generateImage())
+
 <x-app>
     <div class=" relative overflow-hidden flex justify-center">
         <div class="z-10 flex-1 w-full max-w-lg py-8 md:py-16">
@@ -14,7 +17,7 @@
                 </p>
 
                 @if ($errors->any())
-                    <div class="alert-danger mt-8">
+                    <div class="alert-danger mt-8 overflow-scroll">
                         @foreach ($errors->all() as $error)
                             <div>{{ ucfirst($error) }}</div>
                         @endforeach
@@ -79,7 +82,7 @@
 
                 <p class="mt-3 text-sm font-medium text-center">
                     <a class="text-brand-600 transition hover:text-brand-500 focus:outline-none focus:underline"
-                       href="#">Forgot password?</a>
+                       href="{{ route('password.request') }}">Forgot password?</a>
                 </p>
             </div>
         </div>
