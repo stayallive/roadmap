@@ -21,6 +21,10 @@ class My extends Component implements HasTable
             return auth()->user()->items()->with('board.project')->latest()->getQuery();
         }
 
+        if ($this->type == 'commentedOn') {
+            return auth()->user()->commentedItems()->getQuery();
+        }
+
         return auth()->user()->votedItems()->with('board.project')->latest('votes.created_at')->getQuery();
     }
 
@@ -32,11 +36,17 @@ class My extends Component implements HasTable
     protected function getTableColumns(): array
     {
         return [
-            Tables\Columns\TextColumn::make('title')->searchable(),
-            Tables\Columns\TextColumn::make('total_votes')->label('Votes')->sortable(),
-            Tables\Columns\TextColumn::make('board.project.title')->label('Project'),
-            Tables\Columns\TextColumn::make('board.title'),
-            Tables\Columns\TextColumn::make('created_at')->sortable()->label('Date')->dateTime(),
+            Tables\Columns\TextColumn::make('title')->label(trans('table.title'))->searchable(),
+            Tables\Columns\TextColumn::make('total_votes')->label(trans('table.total-votes'))->sortable(),
+            Tables\Columns\TextColumn::make('board.project.title')->label(trans('table.project')),
+            Tables\Columns\TextColumn::make('board.title')->label(trans('table.board')),
+            Tables\Columns\TextColumn::make('created_at')->sortable()->label(function () {
+                if ($this->type === 'commentedOn') {
+                    return trans('table.commented_on');
+                }
+
+                return trans('table.created_at');
+            })->dateTime(),
         ];
     }
 

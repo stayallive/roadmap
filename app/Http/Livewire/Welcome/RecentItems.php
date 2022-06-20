@@ -22,6 +22,7 @@ class RecentItems extends Component implements HasTable
 
         return Item::query()
             ->with('board.project')
+            ->visibleForCurrentUser()
             ->when(Arr::get($recentItemsConfig, 'must_have_board'), function (Builder $query) {
                 return $query->has('board');
             })
@@ -54,10 +55,10 @@ class RecentItems extends Component implements HasTable
     protected function getTableColumns(): array
     {
         return [
-            Tables\Columns\TextColumn::make('title'),
-            Tables\Columns\TextColumn::make('total_votes')->label('Votes')->sortable(),
-            Tables\Columns\TextColumn::make('board.project.title')->label('Project'),
-            Tables\Columns\TextColumn::make('board.title'),
+            Tables\Columns\TextColumn::make('title')->label(trans('table.title')),
+            Tables\Columns\TextColumn::make('total_votes')->label(trans('table.total-votes'))->sortable(),
+            Tables\Columns\TextColumn::make('board.project.title')->label(trans('table.project')),
+            Tables\Columns\TextColumn::make('board.title')->label(trans('table.board')),
         ];
     }
 

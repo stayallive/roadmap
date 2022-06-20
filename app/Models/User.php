@@ -8,7 +8,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Filament\Models\Contracts\HasAvatar;
 use Illuminate\Notifications\Notifiable;
 use Filament\Models\Contracts\FilamentUser;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
@@ -16,8 +16,13 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    const ROLE_ADMIN = 'admin';
+    const ROLE_EMPLOYEE = 'employee';
+    const ROLE_USER = 'user';
+
     protected $fillable = [
         'name',
+        'role',
         'email',
         'username',
         'password',
@@ -36,7 +41,17 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
 
     public function canAccessFilament(): bool
     {
-        return $this->admin;
+        return $this->hasAdminAccess();
+    }
+
+    public function hasAdminAccess(): bool
+    {
+        return $this->role === self::ROLE_ADMIN || $this->role === self::ROLE_EMPLOYEE;
+    }
+
+    public function hasRole(...$roles): bool
+    {
+        return in_array($this->role, $roles);
     }
 
     public function getGravatar($size = 150)
@@ -54,9 +69,9 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
         return $this->hasMany(Item::class);
     }
 
-    public function votes(): MorphMany
+    public function votes(): HasMany
     {
-        return $this->morphMany(Vote::class, 'model');
+        return $this->hasMany(Vote::class);
     }
 
     public function votedItems()
@@ -72,6 +87,18 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
     public function assignedItems()
     {
         return $this->belongsToMany(Item::class, 'item_user');
+    }
+
+    public function commentedItems()
+    {
+        return $this->hasManyThrough(
+            Item::class,
+            Comment::class,
+            'user_id',
+            'id',
+            'id',
+            'item_id'
+        )->orderBy('comments.created_at', 'desc')->distinct();
     }
 
     public function mentions()
@@ -96,7 +123,8 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
         static::creating(function (self $user) {
             $user->username = Str::slug($user->name);
             $user->notification_settings = [
-                'receive_mention_notifications'
+                'receive_mention_notifications',
+                'receive_comment_reply_notifications',
             ];
         });
 

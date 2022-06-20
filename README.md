@@ -11,14 +11,18 @@ Welcome to Roadmap, the open-source software for your roadmapping needs 🛣
 - Upvote items to see which has more priority
 - Automatic slug generation
 - Filament admin panel 💛
-- Automatic OG image generation including branding color you've setup (saves in your storage, around 70kb per image), if title is too long it will strip automatically as well, example:
-![OG](https://roadmap.ploi.io/storage/og-20-ssl-via-api-force-request-skip-dns-verification-site-level-request-20.jpg?v=1653397308)
+- Simplified role system (administrator, employee & user)
 - OAuth 2 single sign-on with your own application
+- Automatic OG image generation including branding color you've setup (saves in your storage, around 70kb per image), if title is too long it will strip automatically as well, example:
+
+![OG](https://roadmap.ploi.io/storage/og-20-ssl-via-api-force-request-skip-dns-verification-site-level-request-20.jpg?v=1653765303)
 
 ## Requirements
 
 - PHP >= 8.1
 - Database (MySQL, PostgreSQL)
+- GD Library (>=2.0) or
+- Imagick PHP extension (>=6.5.7)
 
 ## Installation
 
@@ -36,6 +40,9 @@ npm run production
 
 Now edit your `.env` file and set up the database credentials, including the app name you want.
 
+Optionally you may set up the language with `APP_LOCALE`, if your language is not working we accept PR's for new languages. We recommend copying those files from the `lang/en` folder.
+As well as the timezone can be set with `APP_TIMEZONE`, for example: `APP_TIMEZONE="Europe/Amsterdam"`.
+
 Now run the following:
 
 ```
@@ -43,7 +50,7 @@ php artisan migrate --force
 php artisan make:filament-user
 ```
 
-And login with the credentials you've provided. If you want to be admin user, change the `admin` column for your user from `0` to `1`.
+And login with the credentials you've provided. If you want to be admin user, change the `role` column for your user to `admin`.
 
 ## Deployment
 
@@ -68,6 +75,19 @@ echo "🚀 Application deployed!"
 ```
 
 If you're using queue workers (which we recommend to do) also add `php artisan queue:restart` to your deployment script.
+
+## Role system
+
+There's a simplified role system included in this roadmapping software. There's 3 roles: administrator, employee & user.
+
+What are these roles allowed to do?
+
+- Administrator
+  - Obviously anything to users, items, projects, access admin
+- Employee
+  - These can access the admin, and see their assigned items (via a filter). What they can't do: settings, theme, users, CRUD projects.
+- User
+  - This is your default user when someone registers, they don't have access to the administration and can only access the frontend.
 
 ## Installing SSO (OAuth 2 login with 3rd party app)
 
@@ -112,11 +132,11 @@ Next we're going to prepare the routes, controller & resource for your applicati
 Create these routes inside the `api.php` file:
 
 ```php
-Route::get('oauth/user', 'UserOAuthController@user')->middleware('scopes:email');
-Route::delete('oauth/revoke', 'UserOAuthController@revoke');
+Route::get('oauth/user', [Api\UserOAuthController::class, 'user'])->middleware('scopes:email');
+Route::delete('oauth/revoke', [Api\UserOAuthController::class, 'revoke']);
 ```
 
-Create the resource: `php artisan make:resource Api\UserOAuthResource` with the following contents in the `toArray()` method:
+Create the resource: `php artisan make:resource Api/UserOAuthResource` with the following contents in the `toArray()` method:
 
 ```php
 public function toArray($request)
@@ -129,7 +149,7 @@ public function toArray($request)
 }
 ```
 
-Create a controller `php artisan make:controller Api\UserOAuthController` and add these functions:
+Create a controller `php artisan make:controller Api/UserOAuthController` and add these functions:
 
 ```php
 use App\Http\Resources\Api\UserOAuthResource;

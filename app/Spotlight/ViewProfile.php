@@ -8,9 +8,15 @@ use LivewireUI\Spotlight\SpotlightCommand;
 
 class ViewProfile extends SpotlightCommand
 {
-    protected string $name = 'Profile';
+    public function getName(): string
+    {
+        return trans('spotlight.profile.name');
+    }
 
-    protected string $description = 'View your profile';
+    public function getDescription(): string
+    {
+        return trans('spotlight.profile.description');
+    }
 
     public function execute(Spotlight $spotlight): void
     {

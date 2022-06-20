@@ -9,25 +9,25 @@
 
             <ul class="items-center hidden space-x-3 text-sm font-medium text-gray-600 md:flex">
                 <li>
-                    <kbd @click="$dispatch('toggle-spotlight')" class="cursor-pointer p-1 items-center shadow justify-center rounded border border-gray-400 hover:bg-gray-200 bg-white font-semibold text-gray-900">CMD + / to search</kbd>
+                    <kbd @click="$dispatch('toggle-spotlight')" class="cursor-pointer p-1 items-center shadow justify-center rounded border border-gray-400 hover:bg-gray-200 bg-white font-semibold text-gray-900">{{ trans('general.navbar-search') }}</kbd>
                 </li>
                 @guest
                     <li>
                         <a class="flex items-center justify-center text-white hover:text-gray-50 focus:outline-none"
                            href="{{ route('login') }}">
-                            Login
+                            {{ trans('auth.login') }}
                         </a>
                     </li>
                     <li>
                         <a class="flex items-center justify-center text-white hover:text-gray-50 focus:outline-none"
                            href="{{ route('register') }}">
-                            Register
+                            {{ trans('auth.register') }}
                         </a>
                     </li>
                 @endguest
 
                 @auth
-                    @if(auth()->user()->admin)
+                    @if(auth()->user()->hasAdminAccess())
                         <li>
                             <a class="flex items-center justify-center w-10 h-10 text-red-500 transition rounded-full hover:bg-gray-500/5 focus:bg-blue-500/10 focus:outline-none"
                                href="{{ route('filament.pages.dashboard') }}">
@@ -49,9 +49,9 @@
                 @endauth
 
                     <li>
-                        <x-filament::button color="secondary" onclick="Livewire.emit('openModal', 'create-item-modal')"
+                        <x-filament::button color="secondary" onclick="Livewire.emit('openModal', 'modals.item.create-item-modal')"
                                             icon="heroicon-o-plus-circle">
-                            Submit item
+                            {{ trans('items.create') }}
                         </x-filament::button>
                     </li>
             </ul>
@@ -84,18 +84,28 @@
                 <li>
                     <a class="block p-2 transition rounded-lg focus:outline-none hover:bg-brand-500-400"
                        href="{{ route('home') }}">
-                        Dashboard
+                        {{ trans('general.dashboard') }}
                     </a>
                 </li>
 
                 <li>
                     <a class="block p-2 transition rounded-lg focus:outline-none hover:bg-brand-500-400"
-                       href="{{ route('my') }}">My items</a>
+                       href="{{ route('my') }}">
+                        {{ trans('items.my-items') }}
+                    </a>
                 </li>
 
                 <li>
                     <a class="block p-2 transition rounded-lg focus:outline-none hover:bg-brand-500-400"
-                       href="{{ route('profile') }}">Profile</a>
+                       href="{{ route('profile') }}">
+                        {{ trans('auth.profile') }}
+                    </a>
+                </li>
+                <li>
+                    <x-filament::button color="secondary" onclick="Livewire.emit('openModal', 'modals.item.create-item-modal')"
+                                        icon="heroicon-o-plus-circle">
+                        {{ trans('items.create') }}
+                    </x-filament::button>
                 </li>
             </ul>
         </nav>

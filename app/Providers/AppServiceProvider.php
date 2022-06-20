@@ -2,53 +2,43 @@
 
 namespace App\Providers;
 
-use App\Services\OgImageGenerator;
 use Filament\Facades\Filament;
+use App\Services\OgImageGenerator;
+use Illuminate\Support\Collection;
 use App\SocialProviders\SsoProvider;
-use Filament\Navigation\NavigationItem;
 use Illuminate\Support\Facades\View;
+use Filament\Navigation\NavigationItem;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Socialite\Contracts\Factory as SocialiteFactory;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     *
-     * @return void
-     */
-    public function register()
+    public function boot(): void
     {
-        //
-    }
-
-    /**
-     * Bootstrap any application services.
-     *
-     * @return void
-     */
-    public function boot()
-    {
-        View::composer('partials.meta', function ($view) {
-            $view->with('defaultImage', (new OgImageGenerator())
-                ->setSubject('Roadmap')
-                ->setTitle(config('app.name'))
-                ->setImageName('og.jpg')
-                ->generateImage()
+        View::composer('partials.meta', static function ($view) {
+            $view->with(
+                'defaultImage',
+                OgImageGenerator::make(config('app.name'))
+                                ->withSubject('Roadmap')
+                                ->withPolygonDecoration()
+                                ->withFilename('og.jpg')
+                                ->generate()
+                                ->getPublicUrl()
             );
         });
 
-        Filament::serving(function () {
+        Filament::serving(static function () {
             Filament::registerTheme(mix('css/admin.css'));
         });
 
         Filament::registerNavigationItems([
             NavigationItem::make()
-                ->group('External')
-                ->sort(101)
-                ->label('Public view')
-                ->icon('heroicon-o-rewind')
-                ->isActiveWhen(fn(): bool => false)
-                ->url('/'),
+                          ->group('External')
+                          ->sort(101)
+                          ->label('Public view')
+                          ->icon('heroicon-o-rewind')
+                          ->isActiveWhen(fn (): bool => false)
+                          ->url('/'),
         ]);
 
         if (file_exists($favIcon = storage_path('app/public/favicon.png'))) {
@@ -56,17 +46,29 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->bootSsoSocialite();
+
+        $this->bootCollectionMacros();
     }
 
-    private function bootSsoSocialite()
+    private function bootSsoSocialite(): void
     {
-        $socialite = $this->app->make('Laravel\Socialite\Contracts\Factory');
-        $socialite->extend(
-            'sso',
-            function ($app) use ($socialite) {
-                $config = $app['config']['services.sso'];
-                return $socialite->buildProvider(SsoProvider::class, $config);
-            }
-        );
+        $socialite = $this->app->make(SocialiteFactory::class);
+
+        $socialite->extend('sso', static function ($app) use ($socialite) {
+            $config = $app['config']['services.sso'];
+
+            return $socialite->buildProvider(SsoProvider::class, $config);
+        });
+    }
+
+    private function bootCollectionMacros(): void
+    {
+        Collection::macro('prioritize', function ($callback): Collection {
+            $nonPrioritized = $this->reject($callback);
+
+            return $this
+            ->filter($callback)
+            ->merge($nonPrioritized);
+        });
     }
 }
