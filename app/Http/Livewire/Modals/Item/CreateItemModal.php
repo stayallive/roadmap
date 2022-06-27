@@ -42,6 +42,7 @@ class CreateItemModal extends ModalComponent implements HasForms
         $inputs = [];
 
         $inputs[] = TextInput::make('title')
+            ->autofocus()
             ->label(trans('table.title'))
             ->lazy()
             ->afterStateUpdated(function (Closure $set, $state) {
@@ -54,7 +55,7 @@ class CreateItemModal extends ModalComponent implements HasForms
             $inputs[] = Select::make('project_id')
                 ->label(trans('table.project'))
                 ->reactive()
-                ->options(Project::query()->pluck('title', 'id'))
+                ->options(Project::query()->visibleForCurrentUser()->pluck('title', 'id'))
                 ->required(app(GeneralSettings::class)->project_required_when_creating_item);
         }
 
@@ -80,6 +81,12 @@ class CreateItemModal extends ModalComponent implements HasForms
     {
         if (!auth()->user()) {
             return redirect()->route('login');
+        }
+
+        if (app(GeneralSettings::class)->users_must_verify_email && !auth()->user()->hasVerifiedEmail()) {
+            $this->notify('primary', 'Please verify your email before submitting items.');
+
+            return redirect()->route('verification.notice');
         }
 
         $data = $this->form->getState();

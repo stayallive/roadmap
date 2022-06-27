@@ -43,6 +43,12 @@ class Create extends Component implements HasForms
 
     public function submit()
     {
+        if (!$this->board->canUsersCreateItem()) {
+            $this->notify('error', trans('items.not-allowed-to-create-items'));
+            $this->redirectRoute('projects.boards.show', [$this->project, $this->board]);
+            return;
+        }
+
         $formState = $this->form->getState();
 
         $item = Item::create([
@@ -50,17 +56,14 @@ class Create extends Component implements HasForms
         ]);
 
         $item->user()->associate(auth()->user())->save();
+        $item->project()->associate($this->project)->save();
         $item->board()->associate($this->board)->save();
 
         $item->toggleUpvote();
 
         $this->notify('success', trans('items.item_created'));
 
-        if (!$this->project) {
-            return redirect()->route('home');
-        }
-
-        return redirect()->route('projects.boards.show', [$this->project->id, $this->board->id]);
+        $this->redirectRoute('projects.items.show', [$this->project, $item]);
     }
 
     public function render()

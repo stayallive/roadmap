@@ -2,23 +2,21 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Filament\Models\Contracts\HasAvatar;
 use Illuminate\Notifications\Notifiable;
 use Filament\Models\Contracts\FilamentUser;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class User extends Authenticatable implements FilamentUser, HasAvatar
+class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
-
-    const ROLE_ADMIN = 'admin';
-    const ROLE_EMPLOYEE = 'employee';
-    const ROLE_USER = 'user';
 
     protected $fillable = [
         'name',
@@ -36,7 +34,8 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'notification_settings' => 'array'
+        'notification_settings' => 'array',
+        'role' => UserRole::class,
     ];
 
     public function canAccessFilament(): bool
@@ -46,10 +45,10 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
 
     public function hasAdminAccess(): bool
     {
-        return $this->role === self::ROLE_ADMIN || $this->role === self::ROLE_EMPLOYEE;
+        return in_array($this->role, [UserRole::Admin, UserRole::Employee]);
     }
 
-    public function hasRole(...$roles): bool
+    public function hasRole(UserRole ...$roles): bool
     {
         return in_array($this->role, $roles);
     }
@@ -98,7 +97,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
             'id',
             'id',
             'item_id'
-        )->orderBy('comments.created_at', 'desc')->distinct();
+        )->withMax('comments', 'created_at')->distinct('comments.item_id');
     }
 
     public function mentions()

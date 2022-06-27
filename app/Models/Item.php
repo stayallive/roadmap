@@ -5,7 +5,10 @@ namespace App\Models;
 use App\Traits\Sluggable;
 use App\Traits\HasOgImage;
 use Illuminate\Support\Str;
+use App\Enums\InboxWorkflow;
+use App\Settings\GeneralSettings;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Spatie\Activitylog\ActivitylogServiceProvider;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,11 +20,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Item extends Model
 {
     use HasFactory, Sluggable, HasOgImage;
-
-    const STATUS_OPEN = 'open';
-    const STATUS_REVIEW = 'under-review';
-    const STATUS_PLANNED = 'planned';
-    const STATUS_LIVE = 'live';
 
     public $fillable = [
         'slug',
@@ -95,16 +93,21 @@ class Item extends Model
 
     public function scopeVisibleForCurrentUser($query)
     {
-        if (auth()->check() && auth()->user()->hasAdminAccess()) {
+        if (auth()->user()?->hasAdminAccess()) {
             return $query;
         }
 
-        return $query->where('private', false);
+        return $query->where('private', false)
+                     ->when($this->project_id, fn ($query) => $query->whereRelation('project', 'private', false));
     }
 
-    public function scopeHasNoProjectAndBoard($query)
+    public function scopeForInbox($query)
     {
-        return $query->whereNull('project_id')->whereNull('board_id');
+        return match (app(GeneralSettings::class)->getInboxWorkflow()) {
+            InboxWorkflow::WithoutBoardAndProject => $query->whereNull('project_id')->whereNull('board_id'),
+            InboxWorkflow::WithoutBoard => $query->whereNotNull('project_id')->whereNull('board_id'),
+            InboxWorkflow::Disabled => null,
+        };
     }
 
     public function hasVoted(User $user = null): bool
@@ -115,7 +118,7 @@ class Item extends Model
             return false;
         }
 
-        return (bool)$this->votes()->where('user_id', $user->id)->exists();
+        return (bool) $this->votes()->where('user_id', $user->id)->exists();
     }
 
     public function getUserVote(User $user = null): Vote|null
@@ -159,5 +162,26 @@ class Item extends Model
     public function isPrivate(): bool
     {
         return $this->private;
+    }
+
+    /**
+     *  Returns a collection of the most recent users who have voted for this item.
+     *
+     * @param  int  $count Displays five users by default.
+     * @return Collection|\Illuminate\Support\Collection
+     */
+    public function getRecentVoterDetails(int $count = 5): Collection|\Illuminate\Support\Collection
+    {
+        return $this->votes()
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->take($count)
+            ->get()
+            ->map(function ($vote) {
+                return [
+                    'name' => $vote->user->name,
+                    'avatar' => $vote->user->getGravatar('50'),
+                ];
+            });
     }
 }

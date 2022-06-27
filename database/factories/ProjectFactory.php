@@ -17,7 +17,18 @@ class ProjectFactory extends Factory
     public function definition()
     {
         return [
-            'title' => ucfirst($this->faker->domainWord)
+            'title' => ucfirst($this->faker->domainWord),
+            'slug' => $this->faker->word,
+            'private' => false,
         ];
+    }
+
+    public function private()
+    {
+        return $this->state(function() {
+            return [
+                'private' => true,
+            ];
+        });
     }
 }

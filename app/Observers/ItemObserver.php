@@ -5,7 +5,9 @@ namespace App\Observers;
 use Mail;
 use App\Models\Item;
 use App\Models\User;
+use App\Enums\ItemActivity;
 use App\Settings\GeneralSettings;
+use Illuminate\Support\Facades\Storage;
 use App\Mail\Admin\ItemHasBeenCreatedEmail;
 use App\Notifications\Item\ItemUpdatedNotification;
 
@@ -13,9 +15,7 @@ class ItemObserver
 {
     public function created(Item $item)
     {
-        activity()
-            ->performedOn($item)
-            ->log('opened');
+        ItemActivity::createForItem($item, ItemActivity::Created);
 
         if ($receivers = app(GeneralSettings::class)->send_notifications_to) {
             foreach ($receivers as $receiver) {
@@ -28,50 +28,42 @@ class ItemObserver
     {
         $isDirty = false;
 
-        if ($item->isDirty('board_id')) {
-            activity()
-                ->performedOn($item)
-                ->log('moved item to board ' . $item->board->title);
+        if ($item->isDirty('board_id') && $item->board) {
+            ItemActivity::createForItem($item, ItemActivity::MovedToBoard, [
+                'board' => $item->board->title,
+            ]);
 
             $isDirty = true;
         }
 
         if ($item->isDirty('project_id') && $item->project) {
-            activity()
-                ->performedOn($item)
-                ->log('moved item to project ' . $item->project->title);
+            ItemActivity::createForItem($item, ItemActivity::MovedToProject, [
+                'project' => $item->project->title,
+            ]);
 
             $isDirty = true;
         }
 
         if ($item->isDirty('pinned') && $item->pinned) {
-            activity()
-                ->performedOn($item)
-                ->log('pinned');
+            ItemActivity::createForItem($item, ItemActivity::Pinned);
 
             $isDirty = true;
         }
 
-        if ($item->isDirty('pinned') && ! $item->pinned) {
-            activity()
-                ->performedOn($item)
-                ->log('un-pinned');
+        if ($item->isDirty('pinned') && !$item->pinned) {
+            ItemActivity::createForItem($item, ItemActivity::Unpinned);
 
             $isDirty = true;
         }
 
         if ($item->isDirty('private') && $item->private) {
-            activity()
-                ->performedOn($item)
-                ->log('made item private');
+            ItemActivity::createForItem($item, ItemActivity::MadePrivate);
 
             $isDirty = true;
         }
 
         if ($item->isDirty('private') && !$item->private) {
-            activity()
-                ->performedOn($item)
-                ->log('made item public');
+            ItemActivity::createForItem($item, ItemActivity::MadePublic);
 
             $isDirty = true;
         }
@@ -87,11 +79,12 @@ class ItemObserver
 
     public function deleting(Item $item)
     {
-        $item->votes()->delete();
-
-        foreach ($item->comments as $comment) {
-            $comment->delete();
+        try {
+            Storage::delete('public/og-' . $item->slug . '-' . $item->id . '.jpg');
+        } catch (\Throwable $exception) {
         }
+
+        $item->votes()->delete();
         $item->comments()->delete();
     }
 }

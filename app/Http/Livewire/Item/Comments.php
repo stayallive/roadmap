@@ -4,20 +4,24 @@ namespace App\Http\Livewire\Item;
 
 use App\Models\Item;
 use Livewire\Component;
+use App\Settings\GeneralSettings;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Contracts\HasForms;
 use App\View\Components\MarkdownEditor;
+use Filament\Http\Livewire\Concerns\CanNotify;
 use Filament\Forms\Concerns\InteractsWithForms;
 
 class Comments extends Component implements HasForms
 {
-    use InteractsWithForms;
+    use CanNotify, InteractsWithForms;
 
     public Item $item;
     public $comments;
     public $content;
     public $private_content;
     public $reply;
+
+    protected $listeners = ['updatedComment' => '$refresh'];
 
     public function mount()
     {
@@ -28,6 +32,12 @@ class Comments extends Component implements HasForms
     {
         if (!auth()->user()) {
             return redirect()->route('login');
+        }
+
+        if (app(GeneralSettings::class)->users_must_verify_email && !auth()->user()->hasVerifiedEmail()) {
+            $this->notify('primary', 'Please verify your email before replying to items.');
+
+            return redirect()->route('verification.notice');
         }
 
         $formState = array_merge($this->form->getState(), [
@@ -109,5 +119,15 @@ class Comments extends Component implements HasForms
     public function reply(?int $id = null)
     {
         $this->reply = $id;
+    }
+
+    public function edit(int $id)
+    {
+        $this->emit('openModal', 'modals.item.comment.edit-comment-modal', ['comment' => $id]);
+    }
+
+    public function showActivitylog(int $id)
+    {
+        $this->emit('openModal', 'modals.item.comment.show-comment-activities-modal', ['comment' => $id]);
     }
 }

@@ -18,7 +18,18 @@ class ItemFactory extends Factory
     {
         return [
             'title' => ucfirst($this->faker->domainWord),
-            'content' => $this->faker->text(500)
+            'content' => $this->faker->text(500),
+            'slug' => $this->faker->word,
+            'private' => false,
         ];
+    }
+
+    public function private()
+    {
+        return $this->state(function () {
+            return [
+                'private' => true,
+            ];
+        });
     }
 }

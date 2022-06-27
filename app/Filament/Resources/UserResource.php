@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use Filament\Forms;
 use App\Models\User;
 use Filament\Tables;
+use App\Enums\UserRole;
 use Filament\Resources\Form;
 use Filament\Resources\Table;
 use Filament\Resources\Resource;
@@ -27,9 +28,9 @@ class UserResource extends Resource
                     Forms\Components\Select::make('role')
                         ->required()
                         ->options([
-                            User::ROLE_USER => 'User',
-                            User::ROLE_EMPLOYEE => 'Employee',
-                            User::ROLE_ADMIN => 'Administrator',
+                            UserRole::User->value => 'User',
+                            UserRole::Employee->value => 'Employee',
+                            UserRole::Admin->value => 'Administrator',
                         ])
                 ])->columns(2)
             ]);

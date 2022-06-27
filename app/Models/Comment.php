@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
+use Spatie\Activitylog\LogOptions;
 use Xetaio\Mentions\Models\Mention;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\Traits\LogsActivity;
 use Xetaio\Mentions\Models\Traits\HasMentionsTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Comment extends Model
 {
-    use HasFactory, HasMentionsTrait;
+    use HasFactory, HasMentionsTrait, LogsActivity;
 
     public $fillable = [
         'content',
@@ -21,6 +23,8 @@ class Comment extends Model
     protected $casts = [
         'private' => 'boolean',
     ];
+
+    protected static $recordEvents = ['updated'];
 
     public function user()
     {
@@ -45,5 +49,15 @@ class Comment extends Model
     public function mentions()
     {
         return $this->morphMany(Mention::class, 'model');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logOnly(['content'])->logOnlyDirty();
+    }
+
+    public function scopePublic($query)
+    {
+        return $query->where('private', false);
     }
 }

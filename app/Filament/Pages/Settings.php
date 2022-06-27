@@ -4,11 +4,14 @@ namespace App\Filament\Pages;
 
 use Closure;
 use Storage;
+use App\Enums\UserRole;
 use Illuminate\Support\Str;
+use App\Enums\InboxWorkflow;
 use Filament\Pages\SettingsPage;
 use App\Settings\GeneralSettings;
 use Filament\Pages\Actions\Action;
 use Illuminate\Support\Collection;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Select;
@@ -29,14 +32,14 @@ class Settings extends SettingsPage
 
     protected static function shouldRegisterNavigation(): bool
     {
-        return auth()->user()->hasRole('admin');
+        return auth()->user()->hasRole(UserRole::Admin);
     }
 
     public function mount(): void
     {
         parent::mount();
 
-        abort_unless(auth()->user()->hasRole('admin'), 403);
+        abort_unless(auth()->user()->hasRole(UserRole::Admin), 403);
 
         $this->ogImages = collect(Storage::disk('public')->allFiles())
             ->filter(function ($file) {
@@ -81,6 +84,11 @@ class Settings extends SettingsPage
                                 ->helperText('Enable this to show the age of an item on the details page.')
                                 ->columnSpan(2),
 
+                            Toggle::make('show_voter_avatars')
+                                ->label('Enable voter avatars when viewing an item')
+                                ->helperText('Enabling this will show the avatars of the most recent voters when viewing an item.')
+                                ->columnSpan(2),
+
                             Toggle::make('select_project_when_creating_item')
                                 ->label('Users can select a project when creating an item')
                                 ->columnSpan(2)
@@ -100,6 +108,17 @@ class Settings extends SettingsPage
                                 ->label('Board is required when creating an item')
                                 ->hidden(fn (Closure $get) => $get('select_board_when_creating_item') === false)
                                 ->columnSpan(2),
+
+                            Toggle::make('users_must_verify_email')
+                                ->label('Users must verify their email before they can submit items, or reply to items.')
+                                ->columnSpan(2),
+
+                            Grid::make()->schema([
+                                Select::make('inbox_workflow')
+                                      ->options(InboxWorkflow::getSelectOptions())
+                                      ->default(InboxWorkflow::WithoutBoardAndProject)
+                                      ->helperText('This allows you to change which items show up in the inbox in the sidebar.'),
+                            ]),
 
                             TextInput::make('password')->helperText('Entering a password here will ask your users to enter a password before entering the roadmap.'),
 

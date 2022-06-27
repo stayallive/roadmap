@@ -13,10 +13,12 @@ class App extends Component
     public Collection $projects;
     public string $brandColors;
     public bool $blockRobots = false;
+    public bool $userNeedsToVerify = false;
 
     public function __construct(public array $breadcrumbs = [])
     {
         $this->projects = Project::query()
+            ->visibleForCurrentUser()
             ->when(app(GeneralSettings::class)->show_projects_sidebar_without_boards === false, function ($query) {
                 return $query->has('boards');
             })
@@ -36,6 +38,10 @@ class App extends Component
         $tw = new Tailwind('brand', app(\App\Settings\ColorSettings::class)->primary);
 
         $this->brandColors = $tw->getCssFormat();
+
+        $this->userNeedsToVerify = app(GeneralSettings::class)->users_must_verify_email &&
+            auth()->check() &&
+            !auth()->user()->hasVerifiedEmail();
 
         return view('components.app');
     }

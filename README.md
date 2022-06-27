@@ -33,9 +33,6 @@ git clone https://github.com/ploi-deploy/roadmap.git
 composer install
 php -r "file_exists('.env') || copy('.env.example', '.env');"
 php artisan key:generate
-php artisan storage:link
-npm install
-npm run production
 ```
 
 Now edit your `.env` file and set up the database credentials, including the app name you want.
@@ -46,15 +43,14 @@ As well as the timezone can be set with `APP_TIMEZONE`, for example: `APP_TIMEZO
 Now run the following:
 
 ```
-php artisan migrate --force
-php artisan make:filament-user
+php artisan roadmap:install
 ```
 
-And login with the credentials you've provided. If you want to be admin user, change the `role` column for your user to `admin`.
+And login with the credentials you've provided, the user you've created will automatically be admin.
 
 ## Deployment
 
-To manage your servers and sites, we recommend using [Ploi.io](https://ploi.io/?ref=) to speed up things, obviously you're free to choose however you'd like to deploy this piece of software 💙
+To manage your servers and sites, we recommend using [Ploi.io](https://ploi.io/?ref=roadmap-readme) to speed up things, obviously you're free to choose however you'd like to deploy this piece of software 💙
 
 That being said, here's an deployment script example:
 
@@ -68,7 +64,7 @@ php artisan route:cache
 php artisan view:clear
 php artisan migrate --force
 
-npm install
+npm ci
 npm run production
 
 echo "🚀 Application deployed!"
@@ -188,6 +184,58 @@ public function boot()
 ```
 
 Now head over to the login page in your roadmap software and view the log in button in action. The title of the button can be set with the `.env` variable: `SSO_LOGIN_TITLE=`
+
+
+## Docker Support
+
+### Getting up and running...
+
+Go into docker folder and run:
+`docker-compose up -d --build`
+
+Set your database .env variables:
+```
+DB_CONNECTION=mysql
+DB_HOST=roadmap-db
+DB_PORT=3306
+DB_DATABASE=roadmap
+DB_USERNAME=root
+DB_PASSWORD=secret
+```
+
+Composer Install:
+
+`docker exec -it roadmap composer install`
+
+NPM Install:
+
+`docker exec -it roadmap npm ci`
+
+Running artisan commands:
+
+`docker exec -it roadmap php artisan <command>`
+
+The Application will be running on `localhost:1337` and PhpMyAdmin is running on `localhost:8010`
+
+### Docker Considerations
+
+There are a few heroicons that were giving issues when running locally with docker.
+
+```
+Unable to locate a class or view for component <insert heroicon name here>
+```
+The problem was resolved by simply changing the following icons:
+
+x-heroicon-o-chevron-down -> x-heroicon-s-chevron-down (group.blade.php)
+heroicon-o-chat -> heroicon-s-chat (CommentResource)
+heroicon-o-archive -> heroicon-s-archive (ItemResource)
+heroicon-o-x-circle -> heroicon-o-collection (notifications.blade.php)
+
+Related Issues:
+
+[laravel-filament/filament#2677](https://github.com/laravel-filament/filament/issues/2677)
+
+[blade-ui-kit/blade-heroicons#9](https://github.com/blade-ui-kit/blade-heroicons/issues/9)
 
 ## Testing
 
