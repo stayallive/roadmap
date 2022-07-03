@@ -19,6 +19,7 @@ use App\Filament\Resources\ItemResource\Pages;
 use App\Filament\Resources\ItemResource\RelationManagers\VotesRelationManager;
 use App\Filament\Resources\ItemResource\RelationManagers\CommentsRelationManager;
 use App\Filament\Resources\ItemResource\RelationManagers\ActivitiesRelationManager;
+use App\Filament\Resources\ItemResource\RelationManagers\ChangelogsRelationManager;
 
 class ItemResource extends Resource
 {
@@ -56,6 +57,10 @@ class ItemResource extends Resource
 
                         Tabs\Tab::make('Management')
                             ->schema([
+                                Forms\Components\Toggle::make('pinned')
+                                    ->helperText('Pinned items will always stay at top.')
+                                    ->label('Pinned')
+                                    ->default(false),
                                 Forms\Components\Toggle::make('private')
                                     ->helperText('Private items will only be visible to admins and employees')
                                     ->label('Private')
@@ -63,8 +68,9 @@ class ItemResource extends Resource
                                 Forms\Components\MultiSelect::make('assigned_users')
                                     ->helperText('Assign admins/employees to items here.')
                                     ->preload()
-                                    ->relationship('assignedUsers', 'name', fn(Builder $query) => $query->whereIn('role', [UserRole::Admin, UserRole::Employee])),
-                            ]),
+                                    ->relationship('assignedUsers', 'name', fn (Builder $query) => $query->whereIn('role', [UserRole::Admin, UserRole::Employee]))
+                                    ->columnSpan(2),
+                            ])->columns(),
                     ])->columnSpan(3),
 
                 Forms\Components\Card::make([
@@ -75,20 +81,20 @@ class ItemResource extends Resource
                         ->required(),
                     Forms\Components\Select::make('board_id')
                         ->label('Board')
-                        ->options(fn($get) => Project::find($get('project_id'))?->boards()->pluck('title', 'id') ?? [])
+                        ->options(fn ($get) => Project::find($get('project_id'))?->boards()->pluck('title', 'id') ?? [])
                         ->required(),
-                    Forms\Components\Toggle::make('pinned')
-                        ->helperText('Pinned items will always stay at top.')
-                        ->label('Pinned')
-                        ->default(false),
+                    Forms\Components\Toggle::make('notify_subscribers')
+                        ->helperText('Send a notification with updates about the item')
+                        ->label('Notify subscribers')
+                        ->default(true),
                     Forms\Components\Placeholder::make('created_at')
                         ->label('Created at')
-                        ->visible(fn($record) => filled($record))
-                        ->content(fn($record) => $record->created_at->format('d-m-Y H:i:s')),
+                        ->visible(fn ($record) => filled($record))
+                        ->content(fn ($record) => $record->created_at->format('d-m-Y H:i:s')),
                     Forms\Components\Placeholder::make('updated_at')
                         ->label('Updated at')
-                        ->visible(fn($record) => filled($record))
-                        ->content(fn($record) => $record->updated_at->format('d-m-Y H:i:s')),
+                        ->visible(fn ($record) => filled($record))
+                        ->content(fn ($record) => $record->updated_at->format('d-m-Y H:i:s')),
                 ])->columnSpan(1),
             ])
             ->columns(4);
@@ -102,7 +108,7 @@ class ItemResource extends Resource
                 Tables\Columns\TextColumn::make('total_votes')->label('Votes')->sortable()->toggleable()->toggledHiddenByDefault(),
                 Tables\Columns\TextColumn::make('comments_count')->label('Comments')->counts('comments')->sortable()->toggleable()->toggledHiddenByDefault(),
                 Tables\Columns\TextColumn::make('project.title'),
-                Tables\Columns\TextColumn::make('board.title'),
+                Tables\Columns\TextColumn::make('board.title')->sortable(),
                 Tables\Columns\TextColumn::make('user.name'),
                 Tables\Columns\TagsColumn::make('assignedUsers.name')->visible(auth()->user()->hasRole(UserRole::Admin))->toggleable()->toggledHiddenByDefault(),
                 Tables\Columns\TextColumn::make('created_at')
@@ -116,7 +122,7 @@ class ItemResource extends Resource
                 Filter::make('assigned')
                     ->label('Assigned to me')
                     ->default(auth()->user()->hasRole(UserRole::Employee))
-                    ->query(fn(Builder $query): Builder => $query->whereHas('assignedUsers', function ($query) {
+                    ->query(fn (Builder $query): Builder => $query->whereHas('assignedUsers', function ($query) {
                         return $query->where('user_id', auth()->id());
                     })),
 
@@ -134,7 +140,7 @@ class ItemResource extends Resource
                         return $query
                             ->when(
                                 $data['users'],
-                                fn(Builder $query, $users): Builder => $query->whereHas('assignedUsers', function ($query) use ($users) {
+                                fn (Builder $query, $users): Builder => $query->whereHas('assignedUsers', function ($query) use ($users) {
                                     return $query->whereIn('users.id', $users);
                                 }),
                             );
@@ -145,7 +151,7 @@ class ItemResource extends Resource
                         Forms\Components\Select::make('project_id')
                             ->label(trans('table.project'))
                             ->afterStateUpdated(function (Closure $set, Closure $get) {
-                                if($get('board_id')){
+                                if ($get('board_id')) {
                                     $set('board_id', null);
                                 }
                             })
@@ -154,7 +160,7 @@ class ItemResource extends Resource
                         Forms\Components\MultiSelect::make('board_id')
                             ->label(trans('table.board'))
                             ->preload()
-                            ->options(fn($get) => Project::find($get('project_id'))?->boards()->pluck('title', 'id') ?? []),
+                            ->options(fn ($get) => Project::find($get('project_id'))?->boards()->pluck('title', 'id') ?? []),
                         Forms\Components\Toggle::make('pinned')
                             ->label('Pinned'),
                         Forms\Components\Toggle::make('private')
@@ -164,21 +170,21 @@ class ItemResource extends Resource
                         return $query
                             ->when(
                                 $data['project_id'],
-                                fn(Builder $query, $projectId): Builder => $query->where('project_id', $projectId),
+                                fn (Builder $query, $projectId): Builder => $query->where('project_id', $projectId),
                             )
                             ->when(
                                 $data['board_id'],
-                                fn(Builder $query, $boardIds): Builder => $query->whereHas('board', function ($query) use ($boardIds) {
+                                fn (Builder $query, $boardIds): Builder => $query->whereHas('board', function ($query) use ($boardIds) {
                                     return $query->whereIn('id', $boardIds);
                                 }),
                             )
                             ->when(
                                 $data['pinned'],
-                                fn(Builder $query): Builder => $query->where('pinned', $data['pinned']),
+                                fn (Builder $query): Builder => $query->where('pinned', $data['pinned']),
                             )
                             ->when(
                                 $data['private'],
-                                fn(Builder $query): Builder => $query->where('private', $data['private']),
+                                fn (Builder $query): Builder => $query->where('private', $data['private']),
                             );
                     })
 
@@ -192,6 +198,7 @@ class ItemResource extends Resource
             ActivitiesRelationManager::class,
             CommentsRelationManager::class,
             VotesRelationManager::class,
+            ChangelogsRelationManager::class,
         ];
     }
 
