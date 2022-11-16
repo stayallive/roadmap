@@ -5,8 +5,10 @@ use App\Models\Board;
 use App\Enums\UserRole;
 use App\Models\Project;
 use function Pest\Laravel\get;
+use function Pest\Laravel\post;
 use App\Http\Livewire\Item\Comments;
 use App\Http\Livewire\Item\VoteButton;
+use function PHPUnit\Framework\assertEquals;
 
 it('renders the items page without a project', function () {
     $item = Item::factory()->create();
@@ -85,4 +87,32 @@ test('user can not see private note field', function (UserRole $userRole, bool $
     [UserRole::User, false],
     [UserRole::Employee, true],
     [UserRole::Admin, true],
+]);
+
+test('user cannot change board of an item', function (UserRole $userRole, bool $shouldBeVisible) {
+    $project = Project::factory()->create();
+    $boards = Board::factory()->for($project)->count(3)->create();
+    $item = Item::factory()->for($boards->first())->for($project)->create();
+
+    createAndLoginUser(['role' => $userRole]);
+
+    get(route('projects.items.show', [$item->project, $item]))
+        ->{$shouldBeVisible ? 'assertSee' : 'assertDontSee'}('<select name="board_id"', false);
+
+    $newBoard = $boards->skip(1)->first();
+    $postRequest = post(route('projects.items.update-board', [$item->project, $item]), [
+        'board_id' => $newBoard->id,
+    ]);
+    if ($shouldBeVisible) {
+        $postRequest->assertRedirect();
+
+        $item->refresh();
+        assertEquals($newBoard->id, $item->board->id);
+    } else {
+        $postRequest->assertForbidden();
+    }
+})->with([
+    'User' => [UserRole::User, false],
+    'Employee' => [UserRole::Employee, true],
+    'Admin' => [UserRole::Admin, true],
 ]);

@@ -3,6 +3,7 @@
 namespace App\Http\Livewire;
 
 use Filament\Forms;
+use ResourceBundle;
 use App\Models\User;
 use Filament\Tables;
 use Livewire\Component;
@@ -33,6 +34,9 @@ class Profile extends Component implements HasForms, HasTable
             'username' => $this->user->username,
             'email' => $this->user->email,
             'notification_settings' => $this->user->notification_settings,
+            'per_page_setting' => $this->user->per_page_setting ?? [5],
+            'locale' => $this->user->locale,
+            'date_locale' => $this->user->date_locale,
         ]);
     }
 
@@ -50,6 +54,8 @@ class Profile extends Component implements HasForms, HasTable
                     ])
                     ->unique(table: User::class, column: 'username', ignorable: auth()->user()),
                 Forms\Components\TextInput::make('email')->label(trans('auth.email'))->required()->email(),
+                Forms\Components\Select::make('locale')->label(trans('auth.locale'))->options($this->locales)->placeholder(trans('auth.locale_null_value')),
+                Forms\Components\Select::make('date_locale')->label(trans('auth.date_locale'))->options($this->locales)->placeholder(trans('auth.date_locale_null_value')),
             ])->collapsible(),
 
             Forms\Components\Section::make(trans('profile.notifications'))
@@ -60,6 +66,21 @@ class Profile extends Component implements HasForms, HasTable
                             'receive_comment_reply_notifications' => trans('profile.receive_comment_reply_notifications'),
                         ]),
                 ])->collapsible(),
+
+            Forms\Components\Section::make(trans('profile.settings'))
+            ->schema([
+                Forms\Components\MultiSelect::make('per_page_setting')->label(trans('profile.per_page_setting'))
+                    ->options([
+                        5 => '5',
+                        10 => '10',
+                        15 => '15',
+                        25 => '25',
+                        50 => '50',
+                    ])
+                    ->required()
+                    ->helperText('Determine how many pages should be available for the items in the "My" page for example.')
+                    ->rules(['array', 'in:5,10,15,25,50'])
+            ])->collapsible(),
         ];
     }
 
@@ -72,7 +93,14 @@ class Profile extends Component implements HasForms, HasTable
             'email' => $data['email'],
             'username' => $data['username'],
             'notification_settings' => $data['notification_settings'],
+            'per_page_setting' => $data['per_page_setting'],
+            'locale' => $data['locale'],
+            'date_locale' => $data['date_locale'],
         ]);
+
+        if ($this->user->wasChanged('locale', 'date_locale')) {
+            $this->notify('success', 'Refresh the page to show locale changes.');
+        }
 
         $this->notify('success', 'Profile has been saved.');
     }
@@ -111,6 +139,15 @@ class Profile extends Component implements HasForms, HasTable
         auth()->logout();
 
         return redirect()->route('home');
+    }
+
+    public function getLocalesProperty(): array
+    {
+        $locales = ResourceBundle::getLocales('');
+
+        return collect($locales)
+            ->mapWithKeys(fn ($locale) => [$locale => $locale])
+            ->toArray();
     }
 
     public function render()

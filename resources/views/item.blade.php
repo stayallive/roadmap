@@ -29,8 +29,21 @@
 
                         @if($item->board)
                             <div class="flex-1">
-                                <span
-                                    class="float-right inline-flex items-center justify-center h-8 px-3 text-sm tracking-tight font-bold text-gray-700 border border-gray-400 rounded-lg bg-white">{{ $item->board->title }}</span>
+                                @if(auth()->check() && auth()->user()->canAccessFilament() && $item->project)
+                                    <form method="post" action="{{ route('projects.items.update-board', [$item->project, $item]) }}">
+                                        @csrf
+                                        <select name="board_id" x-data x-on:change.debounce="$event.target.form.submit()"
+                                                class="float-right inline-flex items-center justify-center h-8 px-3 pt-1.5 pr-8 text-sm tracking-tight font-bold text-gray-700 border border-gray-400 rounded-lg bg-white">
+                                            @foreach($item->project->boards as $board)
+                                                <option value="{{ $board->id }}" @selected($board->is($item->board))>{{ $board->title }}</option>
+                                            @endforeach
+                                        </select>
+                                    </form>
+                                @else
+                                    <span class="float-right inline-flex items-center justify-center h-8 px-3 text-sm tracking-tight font-bold text-gray-700 border border-gray-400 rounded-lg bg-white">
+                                        {{ $item->board->title }}
+                                    </span>
+                                @endif
                             </div>
                         @endif
                     </div>
@@ -78,13 +91,13 @@
 
                 <div class="border-t"></div>
 
-                <livewire:item.vote-button :item="$item"/>
+                <livewire:item.vote-button :model="$item" />
 
                 @if(auth()->check() && $user && $user->is(auth()->user()))
                     <div class="border-t mb-2"></div>
 
                     <div>
-                        <a class="text-primary-500 hover:text-primary-700 border-b ml-1"
+                        <a class="text-primary-500 hover:text-primary-700 ml-1"
                            href="{{ route('items.edit', $item) }}">Edit item</a>
                     </div>
 
@@ -94,9 +107,17 @@
                     <div class="border-t mb-2"></div>
 
                     <div>
-                        <a class="text-red-500 hover:text-red-700 border-b ml-1"
+                        <a class="text-red-500 hover:text-red-700 ml-1"
                            href="{{ route('filament.resources.items.edit', $item) }}">Administer item</a>
                     </div>
+                @endif
+
+                @if($item->tags->count() > 0)
+                    <div class="border-t mb-2"></div>
+
+                    @foreach($item->tags as $tag)
+                        <x-tag :tag="$tag" />
+                    @endforeach
                 @endif
             </x-card>
 

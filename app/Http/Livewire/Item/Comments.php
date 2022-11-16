@@ -3,17 +3,17 @@
 namespace App\Http\Livewire\Item;
 
 use App\Models\Item;
+use Filament\Notifications\Notification;
 use Livewire\Component;
 use App\Settings\GeneralSettings;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Contracts\HasForms;
 use App\View\Components\MarkdownEditor;
-use Filament\Http\Livewire\Concerns\CanNotify;
 use Filament\Forms\Concerns\InteractsWithForms;
 
 class Comments extends Component implements HasForms
 {
-    use CanNotify, InteractsWithForms;
+    use InteractsWithForms;
 
     public Item $item;
     public $comments;
@@ -35,7 +35,9 @@ class Comments extends Component implements HasForms
         }
 
         if (app(GeneralSettings::class)->users_must_verify_email && !auth()->user()->hasVerifiedEmail()) {
-            $this->notify('primary', 'Please verify your email before replying to items.');
+            Notification::make()
+                ->title('Reply')
+                ->body('Please verify your email before replying to items.');
 
             return redirect()->route('verification.notice');
         }
@@ -87,7 +89,7 @@ class Comments extends Component implements HasForms
                                       ->minLength(3)
                                       ->visible(auth()->check() && auth()->user()->hasAdminAccess())
                                       ->rules(['required_if:content,null,""', 'prohibited_unless:content,null,""']),
-                    ])->withAttributes(['class' => 'bg-yellow-50 rounded-xl'])->id("private-{$this->reply}"),
+                    ])->extraAttributes(['class' => 'bg-yellow-50 rounded-xl'])->id("private-{$this->reply}"),
                 ]),
             ];
         }
@@ -96,6 +98,7 @@ class Comments extends Component implements HasForms
             MarkdownEditor::make('content')
                           ->label(trans('comments.comment'))
                           ->helperText(trans('comments.mention-helper-text'))
+                          ->disableToolbarButtons(app(GeneralSettings::class)->getDisabledToolbarButtons())
                           ->minLength(3)
                           ->required(),
         ];

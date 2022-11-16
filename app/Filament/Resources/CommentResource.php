@@ -23,11 +23,11 @@ class CommentResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Card::make([
-                    Forms\Components\BelongsToSelect::make('user_id')
+                    Forms\Components\Select::make('user_id')
                         ->columnSpan(1)
                         ->relationship('user', 'name')
                         ->searchable(),
-                    Forms\Components\BelongsToSelect::make('item_id')
+                    Forms\Components\Select::make('item_id')
                         ->columnSpan(1)
                         ->relationship('item', 'title')
                         ->searchable(),
@@ -41,7 +41,7 @@ class CommentResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('content')->wrap()->searchable(),
-                Tables\Columns\TextColumn::make('item.title'),
+                Tables\Columns\TextColumn::make('item.title')->wrap(),
                 Tables\Columns\TextColumn::make('user.name'),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->label('Date'),
             ])

@@ -4,6 +4,7 @@ namespace App\Http\Livewire\Item;
 
 use App\Models\Item;
 use Livewire\Component;
+use App\Settings\GeneralSettings;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\MarkdownEditor;
@@ -32,6 +33,7 @@ class Edit extends Component implements HasForms
                 ->required(),
             MarkdownEditor::make('content')
                 ->label(trans('table.content'))
+                ->disableToolbarButtons(app(GeneralSettings::class)->getDisabledToolbarButtons())
                 ->minLength(10)
                 ->required(),
         ];

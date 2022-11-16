@@ -7,9 +7,9 @@ use Filament\Tables;
 use Filament\Resources\Form;
 use Filament\Resources\Table;
 use Illuminate\Database\Eloquent\Model;
-use Filament\Resources\RelationManagers\HasManyRelationManager;
+use Filament\Resources\RelationManagers\RelationManager;
 
-class CommentsRelationManager extends HasManyRelationManager
+class CommentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'comments';
 
@@ -42,7 +42,7 @@ class CommentsRelationManager extends HasManyRelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('content')->searchable(),
+                Tables\Columns\TextColumn::make('content')->searchable()->wrap(),
                 Tables\Columns\TextColumn::make('user.name'),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->label('Date'),
             ])

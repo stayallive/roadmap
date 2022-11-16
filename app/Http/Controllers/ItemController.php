@@ -6,7 +6,9 @@ use App\Models\Item;
 use App\Models\Project;
 use App\Enums\ItemActivity;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Spatie\Activitylog\Models\Activity;
+use Filament\Notifications\Notification;
 
 class ItemController extends Controller
 {
@@ -35,7 +37,7 @@ class ItemController extends Controller
         return view('item', [
             'project' => $project,
             'board' => $item->board,
-            'item' => $item,
+            'item' => $item->load('tags'),
             'user' => $item->user,
             'activities' => $activities,
         ]);
@@ -57,6 +59,20 @@ class ItemController extends Controller
         $item = $project->items()->visibleForCurrentUser()->findOrfail($itemId);
 
         $item->toggleUpvote();
+
+        return redirect()->back();
+    }
+
+    public function updateBoard(Project $project, Item $item, Request $request): RedirectResponse
+    {
+        abort_unless(auth()->user()->hasAdminAccess(), 403);
+
+        $item->update($request->only('board_id'));
+
+        Notification::make()
+                    ->title(trans('items.update-board-success', ['board' => $item->board->title]))
+                    ->success()
+                    ->send();
 
         return redirect()->back();
     }

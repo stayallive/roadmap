@@ -14,6 +14,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerifyEmail
 {
@@ -26,6 +27,9 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerif
         'username',
         'password',
         'notification_settings',
+        'per_page_setting',
+        'locale',
+        'date_locale',
     ];
 
     protected $hidden = [
@@ -36,6 +40,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerif
     protected $casts = [
         'email_verified_at' => 'datetime',
         'notification_settings' => 'array',
+        'per_page_setting' => 'array',
         'role' => UserRole::class,
     ];
 
@@ -72,6 +77,11 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerif
     public function items()
     {
         return $this->hasMany(Item::class);
+    }
+
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'project_member')->using(ProjectMember::class);
     }
 
     public function votes(): HasMany
@@ -125,8 +135,8 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerif
 
     public function needsToVerifyEmail() : bool
     {
-       return app(GeneralSettings::class)->users_must_verify_email &&
-            !auth()->user()->hasVerifiedEmail();
+        return app(GeneralSettings::class)->users_must_verify_email &&
+             !auth()->user()->hasVerifiedEmail();
     }
 
     public static function booted()
@@ -137,6 +147,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerif
                 'receive_mention_notifications',
                 'receive_comment_reply_notifications',
             ];
+            $user->per_page_setting = ['5','15','25'];
         });
 
         static::updating(function (self $user) {

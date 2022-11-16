@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Spatie\Tags\HasTags;
+use App\Traits\HasUpvote;
 use App\Traits\Sluggable;
 use App\Traits\HasOgImage;
 use Illuminate\Support\Str;
@@ -9,18 +11,18 @@ use App\Enums\InboxWorkflow;
 use App\Settings\GeneralSettings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Spatie\Activitylog\ActivitylogServiceProvider;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Item extends Model
 {
-    use HasFactory, Sluggable, HasOgImage;
+    use HasFactory, Sluggable, HasOgImage, HasUpvote, HasTags;
 
     public $fillable = [
         'slug',
@@ -39,6 +41,11 @@ class Item extends Model
         'private' => 'boolean',
         'notify_subscribers' => 'boolean',
     ];
+
+    public static function getTagClassName(): string
+    {
+        return Tag::class;
+    }
 
     protected function excerpt(): Attribute
     {
@@ -64,11 +71,6 @@ class Item extends Model
         return $this->belongsTo(Project::class);
     }
 
-    public function votes(): MorphMany
-    {
-        return $this->morphMany(Vote::class, 'model');
-    }
-
     public function subscribedVotes(): MorphMany
     {
         return $this->votes()->where('subscribed', true);
@@ -92,6 +94,13 @@ class Item extends Model
     public function activities(): MorphMany
     {
         return $this->morphMany(ActivitylogServiceProvider::determineActivityModel(), 'subject');
+    }
+
+    public function tags(): MorphToMany
+    {
+        return $this
+            ->morphToMany(self::getTagClassName(), 'taggable', 'taggables', null, 'tag_id')
+            ->orderBy('order_column');
     }
 
     public function scopePopular($query)
@@ -120,48 +129,12 @@ class Item extends Model
         };
     }
 
-    public function hasVoted(User $user = null): bool
+    public function scopeNoChangelogTag($query)
     {
-        $user = $user ?? auth()->user();
-
-        if (!$user) {
-            return false;
-        }
-
-        return (bool)$this->votes()->where('user_id', $user->id)->exists();
-    }
-
-    public function getUserVote(User $user = null): Vote|null
-    {
-        $user = $user ?? auth()->user();
-
-        if (!$user) {
-            return null;
-        }
-
-        return $this->votes()->where('user_id', $user->id)->first();
-    }
-
-    public function toggleUpvote(User $user = null)
-    {
-        $user = $user ?? auth()->user();
-
-        if (!$user) {
-            return redirect()->route('login');
-        }
-
-        $vote = $this->votes()->where('user_id', $user->id)->first();
-
-        if ($vote) {
-            $vote->delete();
-
-            return true;
-        }
-
-        $vote = $this->votes()->create();
-        $vote->user()->associate($user)->save();
-
-        return $vote;
+        return $query
+            ->whereDoesntHave('tags', function (Builder $query) {
+                return $query->where('changelog', '=', true);
+            });
     }
 
     public function isPinned(): bool
@@ -172,26 +145,5 @@ class Item extends Model
     public function isPrivate(): bool
     {
         return $this->private;
-    }
-
-    /**
-     *  Returns a collection of the most recent users who have voted for this item.
-     *
-     * @param int $count Displays five users by default.
-     * @return Collection|\Illuminate\Support\Collection
-     */
-    public function getRecentVoterDetails(int $count = 5): Collection|\Illuminate\Support\Collection
-    {
-        return $this->votes()
-            ->with('user')
-            ->orderBy('created_at', 'desc')
-            ->take($count)
-            ->get()
-            ->map(function ($vote) {
-                return [
-                    'name' => $vote->user->name,
-                    'avatar' => $vote->user->getGravatar('50'),
-                ];
-            });
     }
 }

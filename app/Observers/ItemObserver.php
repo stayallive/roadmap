@@ -7,6 +7,7 @@ use App\Models\Item;
 use App\Models\User;
 use App\Enums\ItemActivity;
 use App\Settings\GeneralSettings;
+use App\Jobs\SendWebhookForNewItemJob;
 use Illuminate\Support\Facades\Storage;
 use App\Mail\Admin\ItemHasBeenCreatedEmail;
 use App\Notifications\Item\ItemUpdatedNotification;
@@ -19,7 +20,14 @@ class ItemObserver
 
         if ($receivers = app(GeneralSettings::class)->send_notifications_to) {
             foreach ($receivers as $receiver) {
-                Mail::to($receiver['email'])->send(new ItemHasBeenCreatedEmail($receiver, $item));
+                if (!isset($receiver['type'])) {
+                    continue;
+                }
+
+                match ($receiver['type']) {
+                    'email' => Mail::to($receiver['webhook'])->send(new ItemHasBeenCreatedEmail($receiver, $item)),
+                    'discord', 'slack' => dispatch(new SendWebhookForNewItemJob($item, $receiver)),
+                };
             }
         }
     }
@@ -88,5 +96,6 @@ class ItemObserver
 
         $item->votes()->delete();
         $item->comments()->delete();
+        $item->changelogs()->detach();
     }
 }

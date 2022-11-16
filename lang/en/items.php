@@ -19,6 +19,7 @@ return [
     'all-caught-up-can-create' => 'You can create an item on the right.',
     'login_to_submit_item' => 'Login to be able to submit an item.',
     'item_created' => 'Item created',
+    'item_created_notification_body' => 'A new roadmap item has been created by :user with the title :title',
     'subscribe' => 'Subscribe',
     'unsubscribe' => 'Unsubscribe',
     'subscribe-tooltip' => 'Subscribe to receive notifications about updates on this item',
@@ -29,4 +30,5 @@ return [
     'item-pinned' => 'This item is pinned',
     'item-private' => 'This item is private',
     'not-allowed-to-create-items' => 'You are not allowed to create items in this board.',
+    'update-board-success' => 'Successfully moved the item to board :board',
 ];
