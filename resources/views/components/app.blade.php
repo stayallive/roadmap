@@ -6,6 +6,15 @@
 
     <title>@yield('title', 'Welcome') - {{ config('app.name') }}</title>
 
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family={{ $fontFamily['urlValue'] }}" rel="stylesheet" />
+
+    <style>
+        body {
+            font-family: '{{ $fontFamily['cssValue'] }}', sans-serif;
+        }
+    </style>
+
     {!! $brandColors !!}
 
     @vite('resources/css/app.css')
@@ -40,7 +49,7 @@
     </div>
 @endif
 
-@include('partials.header')
+@include('partials.header', ['logo' => $logo])
 
 <div class="w-full mx-auto py-5 md:space-x-10 h-full grid grid-cols-6 w-full px-2 sm:px-6 md:px-8 max-w-[1500px]">
     @include('partials.navbar')

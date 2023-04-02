@@ -48,6 +48,11 @@ class ItemResource extends Resource
                                     ->preload()
                                     ->required()
                                     ->searchable(),
+                                Forms\Components\TextInput::make('slug')
+                                    ->required()
+                                    ->hiddenOn('create')
+                                    ->maxLength(255)
+                                    ->columnSpan(2),
                                 Forms\Components\MarkdownEditor::make('content')
                                     ->columnSpan(2)
                                     ->required()
@@ -106,19 +111,23 @@ class ItemResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('id')->searchable()->toggleable()->toggledHiddenByDefault(),
+                Tables\Columns\TextColumn::make('slug')->searchable()->toggleable()->toggledHiddenByDefault(),
                 Tables\Columns\TextColumn::make('title')->searchable()->wrap(),
                 Tables\Columns\TextColumn::make('total_votes')->label('Votes')->sortable()->toggleable()->toggledHiddenByDefault(),
                 Tables\Columns\TextColumn::make('comments_count')->label('Comments')->counts('comments')->sortable()->toggleable()->toggledHiddenByDefault(),
                 Tables\Columns\TextColumn::make('project.title'),
                 Tables\Columns\TextColumn::make('board.title')->sortable(),
-                Tables\Columns\TextColumn::make('user.name'),
+                Tables\Columns\TextColumn::make('user.name')->toggleable(),
+                Tables\Columns\TagsColumn::make('tags.name')->toggleable()->toggledHiddenByDefault(),
                 Tables\Columns\TagsColumn::make('assignedUsers.name')->visible(auth()->user()->hasRole(UserRole::Admin))->toggleable()->toggledHiddenByDefault(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
+                    ->toggleable()
                     ->label('Date'),
-                Tables\Columns\BooleanColumn::make('pinned')->label('Pinned'),
-                Tables\Columns\BooleanColumn::make('private')->label('Private')->toggleable()->toggledHiddenByDefault(),
+                Tables\Columns\BooleanColumn::make('pinned')->label('Pinned')->sortable()->toggleable()->toggledHiddenByDefault(),
+                Tables\Columns\BooleanColumn::make('private')->label('Private')->sortable()->toggleable()->toggledHiddenByDefault(),
             ])
             ->filters([
                 Filter::make('assigned')

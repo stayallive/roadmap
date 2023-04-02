@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Board;
-use Ramsey\Uuid\Uuid;
 use App\Models\Project;
 use App\Services\Icons;
 use Filament\Resources\Form;
@@ -24,13 +23,6 @@ class ProjectResource extends Resource
 
     public static function form(Form $form): Form
     {
-        $boards = collect(app(GeneralSettings::class)->default_boards)->mapWithKeys(function ($board) {
-            return [Uuid::uuid4()->toString() => [
-                'title' => $board,
-                'description' => null,
-            ]];
-        })->toArray();
-
         return $form
             ->schema([
                 Forms\Components\Card::make([
@@ -38,7 +30,12 @@ class ProjectResource extends Resource
                         ->columnSpan(1)
                         ->required()
                         ->maxLength(255),
-                    Forms\Components\TextInput::make('url')
+// For now, we're not using this..
+//                    Forms\Components\TextInput::make('url')
+//                        ->columnSpan(1)
+//                        ->maxLength(255),
+                    Forms\Components\TextInput::make('group')
+                        ->helperText('Type a group here to categorise them in your roadmap')
                         ->columnSpan(1)
                         ->maxLength(255),
                     Forms\Components\TextInput::make('slug')
@@ -66,7 +63,7 @@ class ProjectResource extends Resource
                         //->collapsed() // We can enable this when Filament has a way to set header titles
                         ->relationship('boards')
                         ->orderable('sort_order')
-                        ->default($boards)
+                        ->default(app(GeneralSettings::class)->default_boards)
                         ->columnSpan(2)
                         ->schema([
                             Forms\Components\Grid::make(2)->schema([

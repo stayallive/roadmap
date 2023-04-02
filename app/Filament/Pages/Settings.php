@@ -2,7 +2,10 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\Board;
+use App\Models\Project;
 use Closure;
+use Filament\Forms\Components\Textarea;
 use Storage;
 use App\Enums\UserRole;
 use Illuminate\Support\Str;
@@ -20,7 +23,6 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\RichEditor;
-use SebastiaanKloos\FilamentCodeEditor\Components\CodeEditor;
 
 class Settings extends SettingsPage
 {
@@ -57,19 +59,6 @@ class Settings extends SettingsPage
                             Toggle::make('board_centered')->label('Center boards in project views')
                                 ->helperText('When centering, this will always show the boards in the center of the content area.')
                                 ->columnSpan(2),
-
-                            Toggle::make('create_default_boards')->label('Create default boards for new projects')
-                                ->helperText('When creating a new project, some default boards can be created.')
-                                ->reactive()
-                                ->columnSpan(2),
-
-                            Group::make([
-                                TagsInput::make('default_boards')->label('Default boards')
-                                    ->placeholder('Enter defaults to be created upon project creation')
-                                    ->helperText('These boards will automatically be prefilled when you create a project.')
-                                    ->columnSpan(2),
-                            ])
-                                ->visible(fn ($get) => $get('create_default_boards')),
 
                             Toggle::make('show_projects_sidebar_without_boards')->label('Show projects in sidebar without boards')
                                 ->helperText('If you don\'t want to show projects without boards in the sidebar, toggle this off.')
@@ -131,6 +120,41 @@ class Settings extends SettingsPage
                                 ->helperText('This content will show at the top of the dashboard for (for all users).'),
                         ]),
 
+                    Tabs\Tab::make('Default boards')
+                            ->schema([
+                                Toggle::make('create_default_boards')->label('Create default boards for new projects')
+                                      ->helperText('When creating a new project, some default boards can be created.')
+                                      ->reactive()
+                                      ->columnSpan(2),
+
+                                Group::make([
+                                    Repeater::make('default_boards')
+                                            ->columns(2)
+                                            ->columnSpan(2)
+                                            ->schema([
+                                                Grid::make(2)->schema([
+                                                    TextInput::make('title')->required(),
+                                                    Select::make('sort_items_by')
+                                                          ->options([
+                                                              Board::SORT_ITEMS_BY_POPULAR => 'Popular',
+                                                              Board::SORT_ITEMS_BY_LATEST => 'Latest',
+                                                          ])
+                                                          ->default(Board::SORT_ITEMS_BY_POPULAR)
+                                                          ->required(),
+                                                ]),
+                                                Grid::make(2)->schema([
+                                                    Toggle::make('visible')->default(true)->helperText('Hides the board from the public view, but will still be accessible if you use the direct URL.'),
+                                                    Toggle::make('can_users_create')->helperText('Allow users to create items in this board.'),
+                                                    Toggle::make('block_comments')->helperText('Block users from commenting to items in this board.'),
+                                                    Toggle::make('block_votes')->helperText('Block users from voting to items in this board.'),
+                                                ]),
+
+                                                Textarea::make('description')->helperText('Used as META description for SEO purposes.')->columnSpan(2),
+
+                                            ]),
+                                ])->columnSpan(2)->visible(fn ($get) => $get('create_default_boards')),
+                            ]),
+
                     Tabs\Tab::make('Dashboard items')
                         ->schema([
                             Repeater::make('dashboard_items')
@@ -176,7 +200,7 @@ class Settings extends SettingsPage
                     Tabs\Tab::make('Notifications')
                         ->schema([
                             Repeater::make('send_notifications_to')
-                                ->columns(3)
+                                ->columns(4)
                                 ->schema([
                                     Select::make('type')
                                         ->default('email')
@@ -186,10 +210,15 @@ class Settings extends SettingsPage
                                             'discord' => 'Discord',
                                             'slack' => 'Slack'
                                         ]),
+                                    Select::make('projects')
+                                        ->multiple()
+                                        ->helperText('Optionally select projects to trigger for, if you do not select a project it will always notify on new events')
+                                        ->options(Project::pluck('title', 'id')),
                                     TextInput::make('name')->label(function ($get) {
                                         return match ($get('type')) {
                                             'email' => 'Name receiver',
-                                            'discord', 'slack' => 'Label'
+                                            'discord', 'slack' => 'Label',
+                                            null => 'Name receiver' // Fallback for previous roadmap users
                                         };
                                     })->required(),
                                     TextInput::make('webhook')
@@ -197,7 +226,8 @@ class Settings extends SettingsPage
                                             return match ($get('type')) {
                                                 'email' => 'E-mail',
                                                 'discord' => 'Discord webhook URL',
-                                                'slack' => 'Slack webhook URL'
+                                                'slack' => 'Slack webhook URL',
+                                                null => 'E-mail' // Fallback for previous roadmap users
                                             };
                                         })
                                         ->required()
@@ -220,7 +250,7 @@ class Settings extends SettingsPage
 
                     Tabs\Tab::make('Scripts')
                         ->schema([
-                            CodeEditor::make('custom_scripts')
+                            Textarea::make('custom_scripts')
                                 ->label('Custom header script')
                                 ->helperText('This allows you to add your own custom widget, or tracking tool. Code inside here will always be placed inside the head section.')
                                 ->columnSpan(2),
@@ -230,6 +260,12 @@ class Settings extends SettingsPage
                             TagsInput::make('excluded_matching_search_words')
                                 ->placeholder('New excluded word')
                                 ->helperText('Define any words here that should be excluded when users create a new item, you can also add words in your own language here to be excluded. Defining words here will increase the search results when a user starts creating an item, to prevent duplicates.')
+                        ]),
+                    Tabs\Tab::make('Profanity')
+                        ->schema([
+                            TagsInput::make('profanity_words')
+                                ->placeholder('Words')
+                                ->helperText('Add words here that should be filtered out when users create items or comment on items.')
                         ])
                 ])
                 ->columns()
