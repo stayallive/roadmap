@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Item;
 use App\Models\Project;
 use App\Enums\ItemActivity;
-use App\Settings\GeneralSettings;
 use Illuminate\Http\Request;
+use App\Settings\GeneralSettings;
 use Illuminate\Http\RedirectResponse;
 use Spatie\Activitylog\Models\Activity;
 use Filament\Notifications\Notification;
@@ -19,14 +19,19 @@ class ItemController extends Controller
 
         if (!$itemId) {
             $item = Item::query()->visibleForCurrentUser()->where('slug', $projectId)->firstOrFail();
+
+            if ($item->project) {
+                // Looks like this item is added to the project, let's redirect to the correct view for the item.
+                return redirect()->to($item->view_url);
+            }
         } else {
             $project = Project::query()->visibleForCurrentUser()->where('slug', $projectId)->firstOrFail();
 
-            $item = $project->items()->visibleForCurrentUser()->where('items.slug', $itemId)->firstOrFail();
+            $item = $project->items()->visibleForCurrentUser()->where('slug', $itemId)->firstOrFail();
         }
 
         $showGitHubLink = app(GeneralSettings::class)->show_github_link;
-        $activities = $item->activities()->with('causer')->latest()->limit(10)->get()->filter(function(Activity $activity) use ($showGitHubLink) {
+        $activities = $item->activities()->with('causer')->latest()->limit(10)->get()->filter(function (Activity $activity) use ($showGitHubLink) {
             if (!$showGitHubLink && ItemActivity::getForActivity($activity) === ItemActivity::LinkedToIssue) {
                 return false;
             }
@@ -45,7 +50,7 @@ class ItemController extends Controller
         return view('item', [
             'project' => $project,
             'board' => $item->board,
-            'item' => $item->load('tags'),
+            'item' => $item,
             'user' => $item->user,
             'activities' => $activities,
         ]);

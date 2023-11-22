@@ -15,18 +15,18 @@
         }
     </style>
 
-    {!! $brandColors !!}
-
-    @vite('resources/css/app.css')
-
-
     @if(file_exists($favIcon = storage_path('app/public/favicon.png')))
         <link href="{{ asset('storage/favicon.png') }}?v={{ md5_file($favIcon) }}" rel="icon" type="image/x-icon"/>
     @endif
 
     @livewireStyles
+    @filamentStyles
+    @vite('resources/css/app.css')
 
     @include('partials.meta')
+
+    {!! $brandColors !!}
+    {!! $primaryColors !!}
 
     @if($blockRobots)
         <meta name="robots" content="noindex">
@@ -49,15 +49,15 @@
     </div>
 @endif
 
-@include('partials.header', ['logo' => $logo])
+<livewire:header :logo="$logo" />
 
-<div class="w-full mx-auto py-5 md:space-x-10 h-full grid grid-cols-6 w-full px-2 sm:px-6 md:px-8 max-w-[1500px]">
+<div class="w-full mx-auto py-5 md:space-x-10 h-full grid grid-cols-6 px-2 sm:px-6 md:px-8 max-w-[1500px]">
     @include('partials.navbar')
 
     <main class="flex-1 h-full col-span-6 lg:col-span-5 lg:border-l lg:pl-5">
         <div class="pb-4">
             <ul class="flex items-center space-x-0.5 text-sm font-medium text-gray-600">
-                @foreach($breadcrumbs as $breadcrumb)
+                @foreach(array_filter($breadcrumbs) as $breadcrumb)
                     @if(!$loop->first)
                         <li>
                             <svg class="text-gray-400 w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -82,15 +82,13 @@
     </main>
 </div>
 
-<x-filament::notification-manager/>
-
-@livewire('livewire-ui-spotlight')
-@livewire('livewire-ui-modal')
-
-@livewireScripts
 @vite('resources/js/app.js')
-@stack('javascript')
+@livewireScriptConfig
+@filamentScripts
 @livewire('notifications')
+
+@stack('javascript')
+<x-impersonate::banner/>
 {!! app(\App\Settings\GeneralSettings::class)->custom_scripts !!}
 </body>
 </html>

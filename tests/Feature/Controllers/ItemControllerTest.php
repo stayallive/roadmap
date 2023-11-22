@@ -5,9 +5,9 @@ use App\Models\Board;
 use App\Enums\UserRole;
 use App\Models\Project;
 use function Pest\Laravel\get;
+use App\Livewire\Item\Comments;
 use function Pest\Laravel\post;
-use App\Http\Livewire\Item\Comments;
-use App\Http\Livewire\Item\VoteButton;
+use App\Livewire\Item\VoteButton;
 use function PHPUnit\Framework\assertEquals;
 
 it('renders the items page without a project', function () {
@@ -35,7 +35,7 @@ test('view has breadcrumbs with project', function () {
     $board = Board::factory()->for($project)->create();
     $item = Item::factory()->for($project)->for($board)->create();
 
-    get(route('items.show', $item))->assertSeeInOrder([$project->title, $board->title, $item->title]);
+    get(route('projects.items.show', [$project, $item]))->assertSeeInOrder([$project->title, $board->title, $item->title]);
 });
 
 test('administer link is only available to users that can access filament', function (UserRole $userRole, bool $shouldBeVisible) {

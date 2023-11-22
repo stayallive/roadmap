@@ -2,7 +2,8 @@
 
 namespace App\Filament\Resources\CommentResource\Pages;
 
-use Filament\Pages\Actions\Action;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use App\Filament\Resources\CommentResource;
 
@@ -10,14 +11,14 @@ class EditComment extends EditRecord
 {
     protected static string $resource = CommentResource::class;
 
-    public function getActions(): array
+    public function getHeaderActions(): array
     {
         return [
             Action::make('view_public')
-                ->color('secondary')
+                ->color('gray')
                 ->openUrlInNewTab()
                 ->url(fn () => route('items.show', $this->record->item) . '#comment-' . $this->record->id),
-            ...parent::getActions()
+            DeleteAction::make(),
         ];
     }
 }

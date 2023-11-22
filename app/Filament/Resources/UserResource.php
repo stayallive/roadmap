@@ -6,11 +6,12 @@ use Filament\Forms;
 use App\Models\User;
 use Filament\Tables;
 use App\Enums\UserRole;
-use Filament\Resources\Form;
-use Filament\Resources\Table;
+use Filament\Forms\Form;
+use Filament\Tables\Table;
 use Filament\Resources\Resource;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
+use STS\FilamentImpersonate\Tables\Actions\Impersonate;
 
 class UserResource extends Resource
 {
@@ -47,6 +48,9 @@ class UserResource extends Resource
             ])
             ->filters([
                 //
+            ])
+            ->actions([
+                Impersonate::make()
             ])
             ->defaultSort('created_at', 'desc');
     }

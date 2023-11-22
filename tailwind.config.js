@@ -1,9 +1,13 @@
 const colors = require('tailwindcss/colors')
+import preset from './vendor/filament/support/tailwind.config.preset'
 
-module.exports = {
+export default {
+    presets: [preset],
     content: [
-        './resources/**/*.blade.php',
+        './app/Filament/**/*.php',
+        './resources/views/filament/**/*.blade.php',
         './vendor/filament/**/*.blade.php',
+        './resources/**/*.blade.php',
     ],
     safelist: [
         "sm:max-w-sm",
@@ -26,7 +30,10 @@ module.exports = {
         "lg:max-w-4xl",
         "lg:max-w-5xl",
         "lg:max-w-6xl",
-        "lg:max-w-7xl"
+        "lg:max-w-7xl",
+
+        "col-span-1",
+        "col-span-2",
     ],
     darkMode: 'class',
     theme: {

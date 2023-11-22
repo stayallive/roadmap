@@ -2,10 +2,11 @@
 
 namespace App\Filament\Resources\InboxResource\RelationManagers;
 
+use App\Filament\Resources\CommentResource;
 use Closure;
 use Filament\Tables;
-use Filament\Resources\Form;
-use Filament\Resources\Table;
+use Filament\Forms\Form;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Resources\RelationManagers\RelationManager;
 
@@ -15,32 +16,10 @@ class CommentsRelationManager extends RelationManager
 
     protected static ?string $recordTitleAttribute = 'content';
 
-    public function canCreate(): bool
-    {
-        return false;
-    }
-
-    protected function canEdit(Model $record): bool
-    {
-        return false;
-    }
-
-    protected function getTableRecordUrlUsing(): Closure
-    {
-        return fn (Model $record): string => route('filament.resources.comments.edit', ['record' => $record]);
-    }
-
-    public static function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                //
-            ]);
-    }
-
-    public static function table(Table $table): Table
+    public function table(Table $table): Table
     {
         return $table
+            ->recordUrl(fn (Model $record): string => CommentResource::getUrl('edit', ['record' => $record]))
             ->columns([
                 Tables\Columns\TextColumn::make('content')->searchable(),
                 Tables\Columns\TextColumn::make('user.name'),

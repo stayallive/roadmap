@@ -57,6 +57,19 @@ class Item extends Model
         );
     }
 
+    protected function viewUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function (mixed $value, array $attributes) {
+                if ($this->project) {
+                    return route('projects.items.show', [$this->project, $attributes['slug']]);
+                }
+
+                return route('items.show', [$attributes['slug']]);
+            },
+        )->shouldCache();
+    }
+
     public function board(): BelongsTo
     {
         return $this->belongsTo(Board::class);
@@ -80,6 +93,11 @@ class Item extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class);
+    }
+
+    public function parentComments(): HasMany
+    {
+        return $this->hasMany(Comment::class)->whereNotNull('parent_id')->latest();
     }
 
     public function assignedUsers(): BelongsToMany

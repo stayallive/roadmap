@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Filament\Panel;
 use App\Enums\UserRole;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -44,7 +45,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerif
         'role' => UserRole::class,
     ];
 
-    public function canAccessFilament(): bool
+    public function canAccessPanel(Panel $panel): bool
     {
         return $this->hasAdminAccess();
     }
@@ -52,6 +53,11 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, MustVerif
     public function hasAdminAccess(): bool
     {
         return in_array($this->role, [UserRole::Admin, UserRole::Employee]);
+    }
+
+    public function canImpersonate(): bool
+    {
+        return $this->role === UserRole::Admin;
     }
 
     public function hasRole(UserRole ...$roles): bool
