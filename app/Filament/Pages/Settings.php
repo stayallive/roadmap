@@ -2,9 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Actions\Action;
-use Filament\Notifications\Notification;
-use Filament\Support\Enums\Alignment;
 use Storage;
 use App\Models\Board;
 use App\Enums\UserRole;
@@ -12,6 +9,7 @@ use App\Models\Project;
 use Filament\Forms\Form;
 use Illuminate\Support\Str;
 use App\Enums\InboxWorkflow;
+use Filament\Actions\Action;
 use App\Services\GitHubService;
 use Filament\Pages\SettingsPage;
 use App\Settings\GeneralSettings;
@@ -21,11 +19,13 @@ use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
+use Filament\Support\Enums\Alignment;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Forms\Components\RichEditor;
 
 class Settings extends SettingsPage
@@ -57,6 +57,7 @@ class Settings extends SettingsPage
     {
         return $form->schema([
             Tabs::make('main')
+                ->persistTabInQueryString()
                 ->schema([
                     Tabs\Tab::make('General')
                         ->schema([
@@ -113,6 +114,10 @@ class Settings extends SettingsPage
                                         ->label('Disallow users to upload files or images via the markdown editors.')
                                         ->columnSpan(1),
 
+                                    Toggle::make('disable_user_registration')
+                                        ->label('Disable user registration')
+                                        ->columnSpan(1),
+
                                     Toggle::make('show_github_link')
                                         ->label('Show a link to the linked GitHub issue on the item page')
                                         ->columnSpan(1)
@@ -125,9 +130,8 @@ class Settings extends SettingsPage
                                     ->options(InboxWorkflow::getSelectOptions())
                                     ->default(InboxWorkflow::WithoutBoardAndProject)
                                     ->helperText('This allows you to change which items show up in the inbox in the sidebar.'),
+                                TextInput::make('password')->helperText('Entering a password here will ask your users to enter a password before entering the roadmap.'),
                             ]),
-
-                            TextInput::make('password')->helperText('Entering a password here will ask your users to enter a password before entering the roadmap.'),
 
                             RichEditor::make('welcome_text')
                                 ->columnSpan(2)
@@ -266,6 +270,8 @@ class Settings extends SettingsPage
                         ->schema([
                             Textarea::make('custom_scripts')
                                 ->label('Custom header script')
+                                ->rows(10)
+                                ->autosize()
                                 ->helperText('This allows you to add your own custom widget, or tracking tool. Code inside here will always be placed inside the head section.')
                                 ->columnSpan(2),
                         ]),
